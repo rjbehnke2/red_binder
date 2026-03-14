@@ -1,19 +1,17 @@
 import { Link } from 'react-router-dom'
 import { useEntriesStore } from '../store/entriesStore'
-import { useRitualsStore } from '../store/ritualsStore'
 import { useEntries } from '../hooks/useEntries'
 import { useCategories } from '../hooks/useCategories'
+import { useRituals } from '../hooks/useRituals'
 import EntryCard from '../components/entries/EntryCard'
 
 export default function Dashboard() {
-  // Kick off data fetching
   useEntries()
   useCategories()
+  const { streak, completedTodayDaily } = useRituals()
 
   const entries = useEntriesStore((s) => s.entries)
   const loading = useEntriesStore((s) => s.loading)
-  const streak = useRitualsStore((s) => s.streak)
-  const completedTodayDaily = useRitualsStore((s) => s.completedTodayDaily)
 
   const recentEntries = entries.slice(0, 5)
   const unapplied = entries.filter((e) => e.status === 'not_applied').length
