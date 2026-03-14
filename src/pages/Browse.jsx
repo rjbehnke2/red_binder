@@ -2,10 +2,15 @@ import { useState } from 'react'
 import { useEntriesStore } from '../store/entriesStore'
 import { useCategoriesStore } from '../store/categoriesStore'
 import { useUIStore } from '../store/uiStore'
+import { useEntries } from '../hooks/useEntries'
+import { useCategories } from '../hooks/useCategories'
 import EntryCard from '../components/entries/EntryCard'
 
 export default function Browse() {
+  useEntries()
+  useCategories()
   const entries = useEntriesStore((s) => s.entries)
+  const loading = useEntriesStore((s) => s.loading)
   const categories = useCategoriesStore((s) => s.categories)
   const viewMode = useUIStore((s) => s.viewMode)
   const setViewMode = useUIStore((s) => s.setViewMode)
@@ -66,7 +71,11 @@ export default function Browse() {
 
       {/* Results */}
       <p className="text-xs text-gray-600">{filtered.length} entries</p>
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="card text-center py-10">
           <p className="text-gray-500">No entries match your filters.</p>
         </div>
