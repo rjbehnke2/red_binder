@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import BottomNav from './BottomNav'
 import TopBar from './TopBar'
+import ToastContainer from './Toast'
 import QuickCapture from '../entries/QuickCapture'
 import { useUIStore } from '../../store/uiStore'
 
@@ -16,6 +17,7 @@ export default function Layout() {
         </div>
       </main>
       <BottomNav />
+      <ToastContainer />
       {quickCaptureOpen && <QuickCapture />}
     </div>
   )

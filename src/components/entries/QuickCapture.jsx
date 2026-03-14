@@ -1,15 +1,18 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '../../store/uiStore'
-import { useEntriesStore } from '../../store/entriesStore'
+import { useEntries } from '../../hooks/useEntries'
 import { useCategoriesStore } from '../../store/categoriesStore'
 
 const ENTRY_TYPES = ['book', 'article', 'podcast', 'video', 'conversation', 'experience', 'other']
 
 export default function QuickCapture() {
+  const navigate = useNavigate()
   const setQuickCaptureOpen = useUIStore((s) => s.setQuickCaptureOpen)
-  const addEntry = useEntriesStore((s) => s.addEntry)
-  const categories = useCategoriesStore((s) => s.categories)
   const addToast = useUIStore((s) => s.addToast)
+  const { create } = useEntries()
+  const categories = useCategoriesStore((s) => s.categories)
+  const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
@@ -22,16 +25,22 @@ export default function QuickCapture() {
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title.trim()) return
-    addEntry({
-      id: crypto.randomUUID(),
+    setSaving(true)
+    const { data, error } = await create({
       ...form,
+      category_id: form.category_id || null,
       status: 'not_applied',
-      created_at: new Date().toISOString(),
     })
-    addToast({ message: 'Entry captured!', type: 'success' })
-    setQuickCaptureOpen(false)
+    setSaving(false)
+    if (error) {
+      addToast({ message: error.message, type: 'error' })
+    } else {
+      addToast({ message: 'Entry captured!', type: 'success' })
+      setQuickCaptureOpen(false)
+      if (data) navigate(`/entries/${data.id}`)
+    }
   }
 
   return (
@@ -40,7 +49,15 @@ export default function QuickCapture() {
       <div className="relative bg-surface-elevated rounded-t-2xl w-full max-w-2xl border border-gray-700 shadow-2xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           <h2 className="font-semibold text-gray-100">Quick Capture</h2>
-          <button onClick={() => setQuickCaptureOpen(false)} className="text-gray-400 hover:text-gray-200 p-1">✕</button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setQuickCaptureOpen(false); navigate('/entries/new') }}
+              className="text-xs text-brand-400 hover:text-brand-300"
+            >
+              Full form →
+            </button>
+            <button onClick={() => setQuickCaptureOpen(false)} className="text-gray-400 hover:text-gray-200 p-1">✕</button>
+          </div>
         </div>
         <div className="p-4 space-y-3 overflow-y-auto max-h-[80vh]">
           <input
@@ -54,7 +71,7 @@ export default function QuickCapture() {
             <select className="input" value={form.category_id} onChange={(e) => set('category_id', e.target.value)}>
               <option value="">Category...</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
               ))}
             </select>
             <select className="input" value={form.entry_type} onChange={(e) => set('entry_type', e.target.value)}>
@@ -83,10 +100,10 @@ export default function QuickCapture() {
           />
           <button
             onClick={handleSave}
-            disabled={!form.title.trim()}
+            disabled={!form.title.trim() || saving}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Entry
+            {saving ? 'Saving…' : 'Save Entry'}
           </button>
         </div>
       </div>

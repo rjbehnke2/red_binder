@@ -1,15 +1,52 @@
+import { useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { useEntriesStore } from '../store/entriesStore'
+import { useUser } from '../lib/auth'
 
-/**
- * useEntries — convenience hook for entry operations.
- * Will fetch from Supabase in Week 2.
- */
 export function useEntries() {
-  const entries = useEntriesStore((s) => s.entries)
-  const loading = useEntriesStore((s) => s.loading)
-  const addEntry = useEntriesStore((s) => s.addEntry)
-  const updateEntry = useEntriesStore((s) => s.updateEntry)
-  const removeEntry = useEntriesStore((s) => s.removeEntry)
+  const user = useUser()
+  const { entries, setEntries, setLoading, addEntry, updateEntry, removeEntry, loading } =
+    useEntriesStore()
 
-  return { entries, loading, addEntry, updateEntry, removeEntry }
+  useEffect(() => {
+    if (!user) return
+    setLoading(true)
+    supabase
+      .from('entries')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setEntries(data)
+        setLoading(false)
+      })
+  }, [user?.id])
+
+  const create = async (fields) => {
+    const { data, error } = await supabase
+      .from('entries')
+      .insert({ user_id: user.id, ...fields })
+      .select()
+      .single()
+    if (!error && data) addEntry(data)
+    return { data, error }
+  }
+
+  const update = async (id, fields) => {
+    const { data, error } = await supabase
+      .from('entries')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) updateEntry(id, data)
+    return { data, error }
+  }
+
+  const remove = async (id) => {
+    const { error } = await supabase.from('entries').delete().eq('id', id)
+    if (!error) removeEntry(id)
+    return { error }
+  }
+
+  return { entries, loading, create, update, remove }
 }
