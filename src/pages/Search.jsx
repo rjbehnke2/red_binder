@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useEntriesStore } from '../store/entriesStore'
+import { useEntries } from '../hooks/useEntries'
 import EntryCard from '../components/entries/EntryCard'
 
 export default function Search() {
+  useEntries()
   const entries = useEntriesStore((s) => s.entries)
   const [query, setQuery] = useState('')
 
