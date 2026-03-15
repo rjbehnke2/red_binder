@@ -3,15 +3,27 @@ import { useEntriesStore } from '../store/entriesStore'
 import { useEntries } from '../hooks/useEntries'
 import { useCategories } from '../hooks/useCategories'
 import { useRituals } from '../hooks/useRituals'
+import { useAINudge } from '../hooks/useAINudge'
+import { useAISettings } from '../hooks/useAISettings'
+import { useUser } from '../lib/auth'
+import AINudge from '../components/ai/AINudge'
 import EntryCard from '../components/entries/EntryCard'
 
 export default function Dashboard() {
   useEntries()
   useCategories()
   const { streak, completedTodayDaily } = useRituals()
+  const { settings } = useAISettings()
+  const user = useUser()
 
   const entries = useEntriesStore((s) => s.entries)
   const loading = useEntriesStore((s) => s.loading)
+
+  const { nudge, loading: nudgeLoading } = useAINudge({
+    enabled: settings.nudgeEnabled,
+    entries,
+    userId: user?.id,
+  })
 
   const recentEntries = entries.slice(0, 5)
   const unapplied = entries.filter((e) => e.status === 'not_applied').length
@@ -46,13 +58,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* AI Nudge placeholder */}
-      <div className="card border-brand-600/30 bg-brand-600/5">
-        <p className="text-xs text-brand-400 font-medium uppercase tracking-wide mb-1">AI Nudge</p>
-        <p className="text-sm text-gray-400 italic">
-          AI-powered prompts arrive in Week 5 — based on your actual entries.
-        </p>
-      </div>
+      {/* AI Nudge */}
+      {settings.nudgeEnabled && (
+        nudgeLoading ? (
+          <div className="card border-brand-600/30 bg-brand-600/5 flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin shrink-0" />
+            <p className="text-xs text-brand-400">Generating your daily nudge…</p>
+          </div>
+        ) : (
+          <AINudge prompt={nudge} />
+        )
+      )}
 
       {/* Recent entries */}
       <section>

@@ -30,5 +30,5 @@ export const getDeferralNudge = (entries) =>
   callEdgeFunction('/ai-deferral-scan', { entries })
 
 // Week 5: POST /ai/entry-assist
-export const getEntryAssist = (entry) =>
-  callEdgeFunction('/ai-entry-assist', { entry })
+export const getEntryAssist = (entry, categories) =>
+  callEdgeFunction('/ai-entry-assist', { entry, categories })

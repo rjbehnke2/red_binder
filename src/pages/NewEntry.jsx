@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useEntries } from '../hooks/useEntries'
 import { useCategoriesStore } from '../store/categoriesStore'
 import { useUIStore } from '../store/uiStore'
+import { useAISettings } from '../hooks/useAISettings'
+import { getEntryAssist } from '../lib/api'
 
 const ENTRY_TYPES = ['book', 'article', 'podcast', 'video', 'conversation', 'experience', 'other']
 
@@ -32,9 +34,35 @@ export default function NewEntry() {
   const [saving, setSaving] = useState(false)
   const [showApplication, setShowApplication] = useState(false)
 
+  const { settings } = useAISettings()
+  const [aiLoading, setAILoading] = useState(false)
+  const [aiUsed, setAIUsed] = useState(false)
+
   const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }))
   const setAppField = (key, val) =>
     setForm((f) => ({ ...f, application: { ...f.application, [key]: val } }))
+
+  const handleAIAssist = async () => {
+    setAILoading(true)
+    try {
+      const result = await getEntryAssist(
+        { title: form.title, quote: form.quote, reflection: form.reflection, entry_type: form.entry_type },
+        categories
+      )
+      if (result?.suggested_category_name) {
+        const match = categories.find(
+          (c) => c.name.toLowerCase() === result.suggested_category_name.toLowerCase()
+        )
+        if (match && !form.category_id) setField('category_id', match.id)
+      }
+      if (result?.plan_starter) {
+        setAppField('plan', result.plan_starter)
+        setShowApplication(true)
+      }
+      setAIUsed(true)
+    } catch {}
+    setAILoading(false)
+  }
 
   const handleSave = async () => {
     if (!form.title.trim()) return
@@ -109,6 +137,26 @@ export default function NewEntry() {
             value={form.reflection}
             onChange={(e) => setField('reflection', e.target.value)}
           />
+          {settings.entryAssistEnabled && form.title.trim() && !aiUsed && (
+            <button
+              type="button"
+              onClick={handleAIAssist}
+              disabled={aiLoading}
+              className="flex items-center gap-2 text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50 transition-colors self-start"
+            >
+              {aiLoading ? (
+                <>
+                  <span className="w-3 h-3 border border-brand-500 border-t-transparent rounded-full animate-spin" />
+                  Thinking…
+                </>
+              ) : (
+                <>✨ AI Assist — suggest category &amp; action plan</>
+              )}
+            </button>
+          )}
+          {aiUsed && (
+            <p className="text-xs text-green-500">✓ AI suggestions applied</p>
+          )}
         </div>
 
         {/* Application */}
