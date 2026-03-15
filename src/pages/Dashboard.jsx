@@ -4,6 +4,7 @@ import { useEntries } from '../hooks/useEntries'
 import { useCategories } from '../hooks/useCategories'
 import { useRituals } from '../hooks/useRituals'
 import { useAINudge } from '../hooks/useAINudge'
+import { useDeferralScan } from '../hooks/useDeferralScan'
 import { useAISettings } from '../hooks/useAISettings'
 import { useUser } from '../lib/auth'
 import AINudge from '../components/ai/AINudge'
@@ -20,6 +21,12 @@ export default function Dashboard() {
   const loading = useEntriesStore((s) => s.loading)
 
   const { nudge, loading: nudgeLoading } = useAINudge({
+    enabled: settings.nudgeEnabled,
+    entries,
+    userId: user?.id,
+  })
+
+  const { result: deferral, loading: deferralLoading } = useDeferralScan({
     enabled: settings.nudgeEnabled,
     entries,
     userId: user?.id,
@@ -68,6 +75,34 @@ export default function Dashboard() {
         ) : (
           <AINudge prompt={nudge} />
         )
+      )}
+
+      {/* Deferral accountability section */}
+      {settings.nudgeEnabled && (deferral?.count > 0) && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⏳</span>
+            <h2 className="font-semibold text-gray-200 text-sm">
+              Sitting on {deferral.count} insight{deferral.count > 1 ? 's' : ''}
+            </h2>
+          </div>
+          {deferral.nudge_message && (
+            <div className="card border-yellow-700/40 bg-yellow-900/10">
+              <p className="text-xs text-yellow-500 font-medium uppercase tracking-wide mb-1">Accountability</p>
+              <p className="text-sm text-gray-300">{deferral.nudge_message}</p>
+            </div>
+          )}
+          <div className="space-y-2">
+            {deferral.stale_entries.slice(0, 3).map((entry) => (
+              <EntryCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+          {deferral.count > 3 && (
+            <Link to="/browse" className="text-xs text-brand-400 hover:text-brand-300 block text-center">
+              +{deferral.count - 3} more → Browse all
+            </Link>
+          )}
+        </section>
       )}
 
       {/* Recent entries */}

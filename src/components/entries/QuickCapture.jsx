@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '../../store/uiStore'
 import { useEntries } from '../../hooks/useEntries'
 import { useCategoriesStore } from '../../store/categoriesStore'
+import { useAISettings } from '../../hooks/useAISettings'
+import { getEntryAssist } from '../../lib/api'
 
 const ENTRY_TYPES = ['book', 'article', 'podcast', 'video', 'conversation', 'experience', 'other']
 
@@ -12,7 +14,10 @@ export default function QuickCapture() {
   const addToast = useUIStore((s) => s.addToast)
   const { create } = useEntries()
   const categories = useCategoriesStore((s) => s.categories)
+  const { settings } = useAISettings()
   const [saving, setSaving] = useState(false)
+  const [aiLoading, setAILoading] = useState(false)
+  const [aiUsed, setAIUsed] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
@@ -24,6 +29,24 @@ export default function QuickCapture() {
   })
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
+
+  const handleAIAssist = async () => {
+    setAILoading(true)
+    try {
+      const result = await getEntryAssist(
+        { title: form.title, quote: form.quote, reflection: form.reflection, entry_type: form.entry_type },
+        categories
+      )
+      if (result?.suggested_category_name && !form.category_id) {
+        const match = categories.find(
+          (c) => c.name.toLowerCase() === result.suggested_category_name.toLowerCase()
+        )
+        if (match) set('category_id', match.id)
+      }
+      setAIUsed(true)
+    } catch {}
+    setAILoading(false)
+  }
 
   const handleSave = async () => {
     if (!form.title.trim()) return
@@ -98,6 +121,24 @@ export default function QuickCapture() {
             value={form.reflection}
             onChange={(e) => set('reflection', e.target.value)}
           />
+          {settings.entryAssistEnabled && form.title.trim() && !aiUsed && (
+            <button
+              type="button"
+              onClick={handleAIAssist}
+              disabled={aiLoading}
+              className="flex items-center gap-2 text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50 transition-colors"
+            >
+              {aiLoading ? (
+                <>
+                  <span className="w-3 h-3 border border-brand-500 border-t-transparent rounded-full animate-spin" />
+                  Thinking…
+                </>
+              ) : (
+                <>✨ AI Assist — suggest category</>
+              )}
+            </button>
+          )}
+          {aiUsed && <p className="text-xs text-green-500">✓ Category suggested</p>}
           <button
             onClick={handleSave}
             disabled={!form.title.trim() || saving}
