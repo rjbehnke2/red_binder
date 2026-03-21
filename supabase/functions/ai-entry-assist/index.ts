@@ -51,12 +51,12 @@ Return ONLY the JSON object, nothing else.`
     })
 
     const raw = (message.content[0] as any).text?.trim() ?? '{}'
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
     let parsed: any = {}
     try {
-      parsed = JSON.parse(raw)
+      parsed = JSON.parse(cleaned)
     } catch {
-      // If parsing fails, extract what we can
-      parsed = { suggested_category_name: null, plan_starter: raw.slice(0, 200) }
+      parsed = { suggested_category_name: null, plan_starter: '' }
     }
 
     return new Response(JSON.stringify({
